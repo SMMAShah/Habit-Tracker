@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Habit tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F4F0;
+    --ink: #10201D;
+    --deep: #14524A;
+    --gold: #B07D24;
+    --muted: #64756F;
+    --line: #D6D9D1;
+    --card: #FFFFFF;
+    --quran: #14524A;
+    --train: #8C3A2B;
+    --work: #3F4E57;
+    --career: #2F5D86;
+    --study: #6B4E8C;
+    --rest: #7A7A62;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0F1614; --ink: #E8EBE5; --deep: #6FC3B2; --gold: #D9A94F;
+      --muted: #9AA9A3; --line: #27332F; --card: #161F1C;
+      --quran: #6FC3B2; --train: #E08B72; --work: #9FB2BF;
+      --career: #86B4E0; --study: #B79BE0; --rest: #B9B994;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0F1614; --ink: #E8EBE5; --deep: #6FC3B2; --gold: #D9A94F;
+    --muted: #9AA9A3; --line: #27332F; --card: #161F1C;
+    --quran: #6FC3B2; --train: #E08B72; --work: #9FB2BF;
+    --career: #86B4E0; --study: #B79BE0; --rest: #B9B994;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: Karla, "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 72px; }
+  h1, h2, h3 { font-family: Newsreader, Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  h1 { font-size: clamp(2rem, 7vw, 3rem); line-height: 1.1; }
+  h2 { font-size: clamp(1.3rem, 4vw, 1.7rem); margin-bottom: 6px; }
+  h3 { font-size: 1.05rem; margin-bottom: 4px; }
+  p { margin: 6px 0; }
+  .sub { color: var(--muted); font-size: 0.95rem; }
+  header { border-bottom: 2px solid var(--deep); padding-bottom: 16px; margin-bottom: 26px; }
+  header .meta { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  section { margin: 38px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+
+  .today-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 720px) { .today-grid { grid-template-columns: 1.15fr 1fr; } }
+
+  ul.blocks { list-style: none; margin: 10px 0 0; padding: 0; }
+  ul.blocks li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); align-items: baseline; }
+  ul.blocks li:first-child { border-top: none; }
+  ul.blocks .t { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.86rem; min-width: 76px; }
+  ul.blocks .n { flex: 1; }
+  .kill { font: inherit; border: none; background: none; color: var(--muted); cursor: pointer; padding: 0 4px; line-height: 1; }
+  .kill:hover { color: var(--train); }
+  [contenteditable="true"]:focus { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
+
+  .check { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .check:first-of-type { border-top: none; }
+  .check input { width: 20px; height: 20px; accent-color: var(--deep); flex: none; }
+  .check.done span.lbl { text-decoration: line-through; color: var(--muted); }
+  .check .run { margin-left: auto; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .figure { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 14px; }
+  .figure div { min-width: 110px; }
+  .big { font-family: Newsreader, Georgia, serif; font-size: 2.2rem; line-height: 1; color: var(--deep); }
+
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 700; background: color-mix(in srgb, var(--deep) 8%, transparent); }
+  tbody th { width: 86px; }
+  td.editable:hover { background: color-mix(in srgb, var(--gold) 9%, transparent); }
+  .hrs { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.tight { min-width: 520px; }
+
+  .month { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; margin-top: 12px; }
+  .month button {
+    font: inherit; font-size: 0.85rem; font-variant-numeric: tabular-nums; padding: 8px 0; border-radius: 7px;
+    border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer;
+  }
+  .month button:hover { border-color: var(--deep); }
+  .month button[aria-pressed="true"] { background: var(--deep); border-color: var(--deep); color: var(--paper); font-weight: 700; }
+  .month button.today { border-color: var(--gold); border-width: 2px; }
+  .month button.future { opacity: 0.45; }
+
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .btn { font: inherit; background: transparent; color: var(--deep); border: 1px solid var(--deep); border-radius: 7px; padding: 7px 13px; cursor: pointer; }
+  .btn:hover { background: color-mix(in srgb, var(--deep) 12%, transparent); }
+  .btn.quiet { color: var(--muted); border-color: var(--line); }
+  button:focus-visible, .juzcell:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .note { border-left: 3px solid var(--gold); padding-left: 14px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: var(--muted); margin-top: 10px; }
+  .tag { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+  .k-quran { background: var(--quran); } .k-train { background: var(--train); }
+  .k-work { background: var(--work); } .k-career { background: var(--career); }
+  .k-study { background: var(--study); } .k-rest { background: var(--rest); }
+  footer { margin-top: 50px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); font-size: 0.85rem; }
+  .saved { color: var(--deep); font-size: 0.85rem; opacity: 0; transition: opacity .25s; }
+  .saved.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .saved { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Habit tracker</h1>
+  <div class="meta">
+    <p class="sub" id="dateline"></p>
+    <button class="btn quiet" id="themeBtn" type="button">Switch theme</button>
+  </div>
+</header>
+
+<section>
+  <h2 id="todayName">Today</h2>
+  <p class="sub" id="todayReading"></p>
+  <div class="today-grid">
+    <div class="card">
+      <h3>The shape of the day</h3>
+      <ul class="blocks" id="todayBlocks"></ul>
+      <div class="row">
+        <button class="btn quiet" id="addBlock" type="button">Add a block</button>
+        <button class="btn quiet" id="resetDay" type="button">Reset this day</button>
+        <span class="saved" id="daySaved">Saved</span>
+      </div>
+      <p class="sub" style="margin-top:10px">Tap any time or line to edit it.</p>
+    </div>
+    <div class="card">
+      <h3>Tick as you go</h3>
+      <div id="checks"></div>
+      <div class="figure">
+        <div>
+          <div class="big" id="streakNum">0</div>
+          <div class="sub">day streak on the full schedule</div>
+        </div>
+        <div>
+          <div class="big" id="sinceNum">0</div>
+          <div class="sub">days since you started</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>How long you've kept it up</h2>
+  <div class="scroll">
+    <table class="tight" id="streakTable">
+      <thead><tr><th>Habit</th><th class="hrs">Streak</th><th class="hrs">Best</th><th class="hrs">Days done</th><th>Since</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2 id="monthTitle">Juz of the month</h2>
+  <p class="sub">The juz follows the date: the 29th is juz 29. On a 31st, read whatever you like. In February the last day picks up the juz the month is short of.</p>
+  <div class="card">
+    <div class="month" id="monthGrid"></div>
+    <p class="sub" style="margin-top:12px" id="monthCount"></p>
+  </div>
+</section>
+
+<section>
+  <h2>Memorising, and reciting at Zuhr</h2>
+  <p class="sub">The morning block is one job split three ways. Revise before you add.</p>
+  <div class="card">
+    <ul class="blocks">
+      <li><span class="t">30 min</span><span class="n"><b>Manzil</b> — old memorisation on a rotation, so nothing goes cold.</span></li>
+      <li><span class="t">30 min</span><span class="n"><b>Sabqi</b> — the last seven days of new work, from memory. Skipping this is why hifz leaks.</span></li>
+      <li><span class="t">50 min</span><span class="n"><b>Sabaq</b> — the new portion, built line by line, then joined.</span></li>
+      <li><span class="t">10 min</span><span class="n"><b>Dalail ul Khayrat</b> — one part. Mondays are parts 8 and 1, so start earlier.</span></li>
+    </ul>
+    <p class="note" style="margin-top:14px">At Zuhr you recite sabaq and sabqi to your teacher, about 20 minutes, Monday to Friday. Corrections go into tomorrow's sabqi, not a notebook.</p>
+    <p class="note" style="margin-top:10px">Start at a quarter page a day. Only increase if the manzil stays clean for two weeks. On boxing mornings, halve the sabaq and keep the revision full length.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The full week</h2>
+  <p class="sub">Every cell is editable. Changes save as you type.</p>
+  <div class="scroll">
+    <table id="weekTable">
+      <thead><tr><th>Day</th><th>Morning</th><th>Midday</th><th>Afternoon</th><th>Evening</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="row">
+    <button class="btn quiet" id="resetWeek" type="button">Reset the week</button>
+    <span class="saved" id="weekSaved">Saved</span>
+  </div>
+  <div class="legend">
+    <span><span class="tag k-quran"></span>Quran</span>
+    <span><span class="tag k-study"></span>Learning</span>
+    <span><span class="tag k-career"></span>Career</span>
+    <span><span class="tag k-work"></span>Work</span>
+    <span><span class="tag k-train"></span>Training</span>
+    <span><span class="tag k-rest"></span>Rest</span>
+  </div>
+  <p class="note" style="margin-top:16px">Every weekday opens the same way: Fajr, Quran and Dalail with coffee, then a nap until 9 if you were up late. Qadhaa is 30 minutes straight after Zuhr, while you're already in wudu.</p>
+</section>
+
+<section>
+  <h2>Hours per week</h2>
+  <div class="scroll">
+    <table id="budget">
+      <thead><tr><th>What</th><th class="hrs">Hours</th><th>When</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note" style="margin-top:16px">About 79 hours committed, 49 asleep. The rest is meals, buses, prayers, family and slack. If something new goes in, something here comes out.</p>
+</section>
+
+<section>
+  <h2>Your data</h2>
+  <div class="card">
+    <p class="sub">Everything is stored in this browser, tied to the address you open it from. Back it up before you switch phone or move the site.</p>
+    <div class="row">
+      <button class="btn" id="exportBtn" type="button">Download a backup</button>
+      <label class="btn" for="importFile" style="display:inline-block">Restore from a backup</label>
+      <input type="file" id="importFile" accept="application/json" style="position:absolute;width:1px;height:1px;opacity:0">
+      <span class="saved" id="dataMsg">Done</span>
+    </div>
+  </div>
+</section>
+
+<footer>Fajr first, everything else after.</footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var K = { log: "ht:log", week: "ht:week", blocks: "ht:blocks", theme: "ht:theme" };
+
+  var HABITS = [
+    ["sabaq", "Sabaq — new portion"],
+    ["revision", "Sabqi and manzil"],
+    ["dalail", "Dalail ul Khayrat"],
+    ["teacher", "Recited to teacher"],
+    ["juz", "Juz of the day"],
+    ["qadhaa", "30 min qadhaa"],
+    ["training", "Training"],
+    ["schedule", "Followed the schedule"]
+  ];
+
+  var DALAIL = { 0: "part 7", 1: "parts 8 and 1", 2: "part 2", 3: "part 3", 4: "part 4", 5: "part 5", 6: "part 6" };
+
+  var DEFAULT_BLOCKS = {
+    Monday: [
+      ["Fajr", "Quran, then Dalail parts 8 and 1 — start earlier today", "quran"],
+      ["7:40", "Nap if you need it, then breakfast", "rest"],
+      ["9:00", "Career block — data science or cyber, portfolio, GitHub", "career"],
+      ["11:00", "Loose: admin, errands, jobs", "rest"],
+      ["Zuhr", "Recite to teacher, then 30 min qadhaa", "quran"],
+      ["2:00", "Open", "rest"],
+      ["4:00", "Work", "work"],
+      ["8:30", "Boxing at Omar's", "train"]
+    ],
+    Tuesday: [
+      ["Fajr", "Quran and Dalail part 2, with coffee", "quran"],
+      ["7:30", "Nap if you need it, then breakfast", "rest"],
+      ["9:00", "Video editing — DaVinci, one short for the page", "study"],
+      ["11:00", "Calisthenics", "train"],
+      ["Zuhr", "Recite to teacher, then 30 min qadhaa", "quran"],
+      ["2:00", "Arabic", "study"],
+      ["4:00", "Work", "work"],
+      ["8:30", "Home, dinner, book before bed — early night", "rest"]
+    ],
+    Wednesday: [
+      ["Fajr", "Quran and Dalail part 3, with coffee", "quran"],
+      ["7:30", "Nap if you need it, then breakfast", "rest"],
+      ["9:00", "Career block", "career"],
+      ["11:00", "Loose", "rest"],
+      ["Zuhr", "Recite to teacher, then 30 min qadhaa", "quran"],
+      ["2:00", "Open", "rest"],
+      ["4:00", "Work", "work"],
+      ["8:30", "Boxing at Omar's", "train"]
+    ],
+    Thursday: [
+      ["Fajr", "Quran and Dalail part 4, with coffee", "quran"],
+      ["7:30", "Nap if you need it, then breakfast", "rest"],
+      ["9:00", "Revision of Saturday's class", "study"],
+      ["10:00", "Reading", "study"],
+      ["11:00", "Calisthenics", "train"],
+      ["Zuhr", "Recite to teacher, then 30 min qadhaa", "quran"],
+      ["2:00", "Arabic", "study"],
+      ["4:00", "Work", "work"],
+      ["8:30", "Movie night", "rest"]
+    ],
+    Friday: [
+      ["Fajr", "Quran and Dalail part 5, with coffee", "quran"],
+      ["7:30", "Nap if you need it, then breakfast", "rest"],
+      ["9:00", "Career block", "career"],
+      ["11:00", "Ghusl, get ready", "rest"],
+      ["Jumu'ah", "Jumu'ah, then 30 min qadhaa", "quran"],
+      ["2:00", "Open", "rest"],
+      ["4:00", "Work", "work"],
+      ["8:30", "Boxing at Omar's", "train"]
+    ],
+    Saturday: [
+      ["Fajr", "Quran and Dalail part 6, with coffee", "quran"],
+      ["9:00", "Islamic studies class", "study"],
+      ["1:00", "Lunch, 30 min qadhaa", "quran"],
+      ["2:00", "Class notes — 30 min while it's fresh", "study"],
+      ["3:00", "Rest before BJJ", "rest"],
+      ["7:00", "BJJ at Fats Gym", "train"]
+    ],
+    Sunday: [
+      ["Fajr", "Quran and Dalail part 7, with coffee", "quran"],
+      ["9:00", "Video editing or ship a project to GitHub", "study"],
+      ["11:00", "Class revision — an hour on the week's material", "study"],
+      ["12:00", "Weekly review, then qadhaa", "rest"],
+      ["1:00", "Swimming and sauna with the brothers, every other week", "train"],
+      ["3:00", "Shop and meal prep for the week — about 2 hours", "rest"],
+      ["Evening", "Family, reading, nothing scheduled", "rest"]
+    ]
+  };
+
+  var DEFAULT_WEEK = [
+    ["Mon", "Quran, Dalail 8 and 1, career block", "Zuhr recitation, qadhaa", "Open", "Work, boxing"],
+    ["Tue", "Quran, editing, calisthenics", "Zuhr recitation, qadhaa", "Arabic", "Work, early night"],
+    ["Wed", "Quran, career block", "Zuhr recitation, qadhaa", "Open", "Work, boxing"],
+    ["Thu", "Quran, class revision, reading, calisthenics", "Zuhr recitation, qadhaa", "Arabic", "Work, movie night"],
+    ["Fri", "Quran, career block", "Jumu'ah, qadhaa", "Open", "Work, boxing"],
+    ["Sat", "Quran, Islamic studies 9–1", "Lunch, qadhaa", "Class notes, rest", "BJJ 7–8:30"],
+    ["Sun", "Quran, editing or GitHub, revision", "Weekly review, qadhaa", "Swim (fortnightly), shop and meal prep", "Free"]
+  ];
+
+  var BUDGET = [
+    ["Hifz — morning block", "14:00", "Every day after Fajr"],
+    ["Dalail ul Khayrat", "2:00", "Daily, longer on Mondays"],
+    ["Reciting to your teacher", "1:40", "Zuhr, Mon to Fri"],
+    ["A juz a day", "5:15", "Commutes, walks, before bed"],
+    ["Qadhaa prayers", "3:30", "After Zuhr, every day"],
+    ["Work", "20:00", "Mon to Fri, 4–8"],
+    ["Islamic studies and revision", "6:30", "Sat class, Sat notes, Thu and Sun revision"],
+    ["Career: upskilling and portfolio", "6:00", "Mon, Wed, Fri mornings"],
+    ["Video editing", "4:00", "Tue and Sun mornings"],
+    ["Boxing", "3:00", "Mon, Wed, Fri at 8:30"],
+    ["Calisthenics", "2:00", "Tue and Thu at 11"],
+    ["BJJ", "1:30", "Sat at 7"],
+    ["Arabic", "2:00", "Tue and Thu at 2"],
+    ["Reading", "2:30", "Thu morning, nights off training"],
+    ["Movie night", "2:00", "Thu at 8:30"],
+    ["Shop and meal prep", "2:00", "Sunday afternoon"],
+    ["Swim and sauna", "1:00", "Fortnightly Sundays"],
+    ["Weekly review", "0:20", "Sunday midday"]
+  ];
+
+  function load(key, fallback) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { window.localStorage.setItem(key, JSON.stringify(value)); return true; } catch (e) { return false; }
+  }
+  function iso(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function flash(el) {
+    if (!el) { return; }
+    el.classList.add("on");
+    window.setTimeout(function () { el.classList.remove("on"); }, 1200);
+  }
+  function debounce(fn, ms) {
+    var t;
+    return function () {
+      var args = arguments, self = this;
+      window.clearTimeout(t);
+      t = window.setTimeout(function () { fn.apply(self, args); }, ms);
+    };
+  }
+
+  var now = new Date();
+  var todayKey = iso(now);
+  var todayName = DAYS[now.getDay()];
+  var log = load(K.log, {});
+  var week = load(K.week, null) || JSON.parse(JSON.stringify(DEFAULT_WEEK));
+  var blocks = load(K.blocks, null) || JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+
+  // ---- juz of the day ----
+  function juzFor(date) {
+    var day = date.getDate();
+    var inMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    if (day === 31) { return []; }              // free choice
+    if (day === inMonth && inMonth < 30) {      // February catches up
+      var list = [];
+      for (var j = day; j <= 30; j += 1) { list.push(j); }
+      return list;
+    }
+    return [day];
+  }
+  function juzLabel(date) {
+    var list = juzFor(date);
+    if (!list.length) { return "any juz you like"; }
+    if (list.length === 1) { return "juz " + list[0]; }
+    return "juz " + list.slice(0, -1).join(", ") + " and " + list[list.length - 1];
+  }
+
+  // ---- theme ----
+  var savedTheme = load(K.theme, null);
+  if (savedTheme === "light" || savedTheme === "dark") {
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var current = document.documentElement.getAttribute("data-theme");
+    var isDark = current ? current === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = isDark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    save(K.theme, next);
+  });
+
+  // ---- header ----
+  document.getElementById("dateline").textContent =
+    now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  document.getElementById("todayName").textContent = todayName;
+  document.getElementById("todayReading").textContent =
+    "Read or listen to " + juzLabel(now) + ". Dalail ul Khayrat: " + DALAIL[now.getDay()] + ".";
+
+  // ---- today's blocks, editable ----
+  var blocksEl = document.getElementById("todayBlocks");
+  var daySaved = document.getElementById("daySaved");
+  var persistBlocks = debounce(function () { save(K.blocks, blocks); flash(daySaved); }, 500);
+
+  function drawBlocks() {
+    blocksEl.textContent = "";
+    var list = blocks[todayName] || [];
+    list.forEach(function (b, idx) {
+      var li = document.createElement("li");
+
+      var t = document.createElement("span");
+      t.className = "t";
+      t.contentEditable = "true";
+      t.textContent = b[0];
+      t.addEventListener("input", function () { list[idx][0] = t.textContent.trim(); persistBlocks(); });
+
+      var n = document.createElement("span");
+      n.className = "n";
+      var dot = document.createElement("span");
+      dot.className = "tag k-" + (b[2] || "rest");
+      var text = document.createElement("span");
+      text.contentEditable = "true";
+      text.textContent = b[1];
+      text.addEventListener("input", function () { list[idx][1] = text.textContent.trim(); persistBlocks(); });
+      n.appendChild(dot);
+      n.appendChild(text);
+
+      var kill = document.createElement("button");
+      kill.className = "kill";
+      kill.type = "button";
+      kill.textContent = "×";
+      kill.setAttribute("aria-label", "Remove this block");
+      kill.addEventListener("click", function () {
+        list.splice(idx, 1);
+        save(K.blocks, blocks);
+        flash(daySaved);
+        drawBlocks();
+      });
+
+      li.appendChild(t);
+      li.appendChild(n);
+      li.appendChild(kill);
+      blocksEl.appendChild(li);
+    });
+  }
+  drawBlocks();
+
+  document.getElementById("addBlock").addEventListener("click", function () {
+    if (!blocks[todayName]) { blocks[todayName] = []; }
+    blocks[todayName].push(["Time", "What you're doing", "rest"]);
+    save(K.blocks, blocks);
+    flash(daySaved);
+    drawBlocks();
+  });
+  document.getElementById("resetDay").addEventListener("click", function () {
+    blocks[todayName] = JSON.parse(JSON.stringify(DEFAULT_BLOCKS[todayName] || []));
+    save(K.blocks, blocks);
+    flash(daySaved);
+    drawBlocks();
+  });
+
+  // ---- habit log ----
+  function entry(dateKey) {
+    if (!log[dateKey]) { log[dateKey] = {}; }
+    return log[dateKey];
+  }
+  function ticked(dateKey, id) {
+    return Boolean(log[dateKey] && log[dateKey][id]);
+  }
+  function currentStreak(id) {
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (!ticked(iso(d), id)) { d.setDate(d.getDate() - 1); }
+    var count = 0;
+    while (ticked(iso(d), id)) { count += 1; d.setDate(d.getDate() - 1); }
+    return count;
+  }
+  function datesFor(id) {
+    return Object.keys(log).filter(function (k) { return log[k] && log[k][id]; }).sort();
+  }
+  function bestStreak(id) {
+    var dates = datesFor(id), best = 0, run = 0, prev = null;
+    dates.forEach(function (k) {
+      var d = new Date(k + "T00:00:00");
+      if (prev && (d - prev) === 86400000) { run += 1; } else { run = 1; }
+      if (run > best) { best = run; }
+      prev = d;
+    });
+    return best;
+  }
+  function firstDate(id) {
+    var dates = datesFor(id);
+    return dates.length ? dates[0] : null;
+  }
+  function prettyDate(key) {
+    if (!key) { return "—"; }
+    return new Date(key + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  var checksEl = document.getElementById("checks");
+  var streakBody = document.querySelector("#streakTable tbody");
+
+  function drawStreaks() {
+    streakBody.textContent = "";
+    HABITS.forEach(function (h) {
+      var tr = document.createElement("tr");
+      var th = document.createElement("th");
+      th.scope = "row";
+      th.textContent = h[1];
+      tr.appendChild(th);
+      [String(currentStreak(h[0])), String(bestStreak(h[0])), String(datesFor(h[0]).length)].forEach(function (v) {
+        var td = document.createElement("td");
+        td.className = "hrs";
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      var since = document.createElement("td");
+      since.textContent = prettyDate(firstDate(h[0]));
+      tr.appendChild(since);
+      streakBody.appendChild(tr);
+    });
+
+    document.getElementById("streakNum").textContent = String(currentStreak("schedule"));
+    var started = Object.keys(log).sort()[0];
+    var days = 0;
+    if (started) {
+      days = Math.round((new Date(todayKey + "T00:00:00") - new Date(started + "T00:00:00")) / 86400000) + 1;
+    }
+    document.getElementById("sinceNum").textContent = String(days);
+  }
+
+  var checkInputs = {};
+  HABITS.forEach(function (h) {
+    var label = document.createElement("label");
+    label.className = "check";
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = ticked(todayKey, h[0]);
+    var span = document.createElement("span");
+    span.className = "lbl";
+    span.textContent = h[1];
+    var run = document.createElement("span");
+    run.className = "run";
+    if (input.checked) { label.classList.add("done"); }
+    input.addEventListener("change", function () {
+      entry(todayKey)[h[0]] = input.checked;
+      if (!input.checked) { delete log[todayKey][h[0]]; }
+      label.classList.toggle("done", input.checked);
+      save(K.log, log);
+      drawStreaks();
+      drawRuns();
+      if (h[0] === "juz") { drawMonth(); }
+    });
+    label.appendChild(input);
+    label.appendChild(span);
+    label.appendChild(run);
+    checksEl.appendChild(label);
+    checkInputs[h[0]] = { input: input, label: label, run: run };
+  });
+
+  function drawRuns() {
+    HABITS.forEach(function (h) {
+      var s = currentStreak(h[0]);
+      checkInputs[h[0]].run.textContent = s > 0 ? s + " day" + (s === 1 ? "" : "s") : "";
+    });
+  }
+
+  // ---- month grid ----
+  var monthGrid = document.getElementById("monthGrid");
+  var monthCount = document.getElementById("monthCount");
+  document.getElementById("monthTitle").textContent =
+    "Juz through " + now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+  function drawMonth() {
+    monthGrid.textContent = "";
+    var y = now.getFullYear(), m = now.getMonth();
+    var total = new Date(y, m + 1, 0).getDate();
+    var done = 0;
+    for (var day = 1; day <= total; day += 1) {
+      (function (d) {
+        var date = new Date(y, m, d);
+        var key = iso(date);
+        var isDone = ticked(key, "juz");
+        if (isDone) { done += 1; }
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = String(d);
+        b.setAttribute("aria-pressed", isDone ? "true" : "false");
+        b.title = d + " " + now.toLocaleDateString("en-GB", { month: "short" }) + " — " + juzLabel(date);
+        if (key === todayKey) { b.className = "today"; }
+        if (date > now && key !== todayKey) { b.className += " future"; }
+        b.addEventListener("click", function () {
+          if (ticked(key, "juz")) { delete log[key].juz; } else { entry(key).juz = true; }
+          save(K.log, log);
+          if (key === todayKey) {
+            checkInputs.juz.input.checked = ticked(key, "juz");
+            checkInputs.juz.label.classList.toggle("done", ticked(key, "juz"));
+          }
+          drawMonth();
+          drawStreaks();
+          drawRuns();
+        });
+        monthGrid.appendChild(b);
+      })(day);
+    }
+    monthCount.textContent = done + " of " + total + " days logged this month. Today: " + juzLabel(now) + ".";
+  }
+  drawMonth();
+  drawStreaks();
+  drawRuns();
+
+  // ---- week table, editable ----
+  var weekBody = document.querySelector("#weekTable tbody");
+  var weekSaved = document.getElementById("weekSaved");
+  var persistWeek = debounce(function () { save(K.week, week); flash(weekSaved); }, 500);
+
+  function drawWeek() {
+    weekBody.textContent = "";
+    week.forEach(function (row, r) {
+      var tr = document.createElement("tr");
+      var th = document.createElement("th");
+      th.scope = "row";
+      th.textContent = row[0];
+      tr.appendChild(th);
+      for (var c = 1; c <= 4; c += 1) {
+        (function (col) {
+          var td = document.createElement("td");
+          td.className = "editable";
+          td.contentEditable = "true";
+          td.textContent = row[col];
+          td.addEventListener("input", function () { week[r][col] = td.textContent.trim(); persistWeek(); });
+          tr.appendChild(td);
+        })(c);
+      }
+      weekBody.appendChild(tr);
+    });
+  }
+  drawWeek();
+
+  document.getElementById("resetWeek").addEventListener("click", function () {
+    week = JSON.parse(JSON.stringify(DEFAULT_WEEK));
+    save(K.week, week);
+    flash(weekSaved);
+    drawWeek();
+  });
+
+  // ---- budget ----
+  var budgetBody = document.querySelector("#budget tbody");
+  BUDGET.forEach(function (row) {
+    var tr = document.createElement("tr");
+    var th = document.createElement("th");
+    th.scope = "row";
+    th.textContent = row[0];
+    tr.appendChild(th);
+    var hrs = document.createElement("td");
+    hrs.className = "hrs";
+    hrs.textContent = row[1];
+    tr.appendChild(hrs);
+    var when = document.createElement("td");
+    when.textContent = row[2];
+    tr.appendChild(when);
+    budgetBody.appendChild(tr);
+  });
+  var totalRow = document.createElement("tr");
+  var tth = document.createElement("th");
+  tth.scope = "row";
+  tth.textContent = "Total";
+  var ttd = document.createElement("td");
+  ttd.className = "hrs";
+  ttd.textContent = "79:15";
+  var twhen = document.createElement("td");
+  twhen.textContent = "Of 168 hours, with 49 asleep";
+  totalRow.appendChild(tth);
+  totalRow.appendChild(ttd);
+  totalRow.appendChild(twhen);
+  budgetBody.appendChild(totalRow);
+
+  // ---- backup ----
+  var dataMsg = document.getElementById("dataMsg");
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    var payload = JSON.stringify({ log: log, week: week, blocks: blocks, saved: todayKey }, null, 2);
+    var url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "habit-tracker-" + todayKey + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+    flash(dataMsg);
+  });
+  document.getElementById("importFile").addEventListener("change", function (ev) {
+    var file = ev.target.files && ev.target.files[0];
+    if (!file) { return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(String(reader.result));
+        if (data.log) { log = data.log; save(K.log, log); }
+        if (data.week) { week = data.week; save(K.week, week); }
+        if (data.blocks) { blocks = data.blocks; save(K.blocks, blocks); }
+        HABITS.forEach(function (h) {
+          var on = ticked(todayKey, h[0]);
+          checkInputs[h[0]].input.checked = on;
+          checkInputs[h[0]].label.classList.toggle("done", on);
+        });
+        drawBlocks();
+        drawWeek();
+        drawMonth();
+        drawStreaks();
+        drawRuns();
+        flash(dataMsg);
+      } catch (e) {
+        window.alert("That file isn't a backup this tracker can read. Pick the JSON file it downloaded.");
+      }
+      ev.target.value = "";
+    };
+    reader.readAsText(file);
+  });
+})();
+</script>
+</body>
+</html>
